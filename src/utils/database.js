@@ -17,12 +17,12 @@ const pool = new Pool({
 });
 
 // Generic query function
-export const query = async (text, params) => {
+export const client = async (text, params) => {
   const start = Date.now();
   try {
     const res = await pool.query(text, params);
     const duration = Date.now() - start;
-    logger.info(`Query executed in ${duration}ms`);
+    logger.info(`Client query executed in ${duration}ms`);
     return res;
   } catch (error) {
     logger.error('Database query error:', error.message);
@@ -33,20 +33,21 @@ export const query = async (text, params) => {
 // Initialize database tables
 export const initializeDatabase = async () => {
   try {
-    // Clean up any existing sequences first
-    await query('DROP SEQUENCE IF EXISTS host_id_seq CASCADE');
-    await query('DROP SEQUENCE IF EXISTS participant_id_seq CASCADE');
-    await query('DROP SEQUENCE IF EXISTS poll_id_seq CASCADE');
-    await query('DROP SEQUENCE IF EXISTS question_id_seq CASCADE');
-    await query('DROP SEQUENCE IF EXISTS option_id_seq CASCADE');
-    await query('DROP SEQUENCE IF EXISTS response_id_seq CASCADE');
-    await query('DROP SEQUENCE IF EXISTS poll_result_id_seq CASCADE');
+    // Drop existing tables if they exist (in correct order due to dependencies)
+    await client('DROP VIEW IF EXISTS poll_results CASCADE');
+    await client('DROP TABLE IF EXISTS responses CASCADE');
+    await client('DROP TABLE IF EXISTS options CASCADE');
+    await client('DROP TABLE IF EXISTS questions CASCADE');
+    await client('DROP TABLE IF EXISTS polls CASCADE');
+    await client('DROP TABLE IF EXISTS participants CASCADE');
+    await client('DROP TABLE IF EXISTS hosts CASCADE');
+    await client('DROP SEQUENCE IF EXISTS hosts_host_id_seq CASCADE');
 
     // Create Host table
-    await query(`
-      CREATE TABLE hosts (
+    await client(`
+      CREATE TABLE IF NOT EXISTS hosts (
         host_id SERIAL PRIMARY KEY,
-        email VARCHAR(255) UNIQUE NOT NULL,
+        host_email VARCHAR(255) UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
         hostname VARCHAR(100) UNIQUE,
         created_at TIMESTAMP DEFAULT NOW(),
@@ -55,16 +56,16 @@ export const initializeDatabase = async () => {
     `);
 
     // Create Participants table
-    await query(`
-      CREATE TABLE participants (
+    await client(`
+      CREATE TABLE IF NOT EXISTS participants (
         participant_id SERIAL PRIMARY KEY,
-        email VARCHAR(255) UNIQUE NOT NULL,
-        participant name VARCHAR(100) UNIQUE
+        participant_email VARCHAR(255) UNIQUE NOT NULL,
+        participant_name VARCHAR(100) UNIQUE
       )
     `);
 
     // Create poll table
-    await query(`
+    await client(`
       CREATE TABLE IF NOT EXISTS polls (
         poll_id SERIAL PRIMARY KEY,
         poll_title VARCHAR(50) UNIQUE NOT NULL,
@@ -75,19 +76,19 @@ export const initializeDatabase = async () => {
     `);
 
     // Create poll questions table
-    await query(`
-      CREATE TABLE questions (
-        id SERIAL PRIMARY KEY,
+    await client(`
+      CREATE TABLE IF NOT EXISTS questions (
+        question_id SERIAL PRIMARY KEY,
         poll_id INTEGER REFERENCES polls(poll_id) ON DELETE CASCADE,
         question_text TEXT NOT NULL,
         question_type VARCHAR(50) NOT NULL, -- e.g., 'multiple_choice', 'open_ended'
         position INTEGER -- for ordering questions
-
+      )
     `);
 
     // Create poll options for questions table
-    await query(`
-      CREATE TABLE options (
+    await client(`
+      CREATE TABLE IF NOT EXISTS options (
         option_id SERIAL PRIMARY KEY,
         question_id INTEGER REFERENCES questions(question_id) ON DELETE CASCADE,
         option_text TEXT NOT NULL,
@@ -96,8 +97,8 @@ export const initializeDatabase = async () => {
     `);
 
     // Create poll responses for participants
-    await query(`
-      CREATE TABLE responses (
+    await client(`
+      CREATE TABLE IF NOT EXISTS responses (
         response_id SERIAL PRIMARY KEY,
         participant_id INTEGER REFERENCES participants(participant_id),
         question_id INTEGER REFERENCES questions(question_id),
@@ -105,21 +106,21 @@ export const initializeDatabase = async () => {
         response_text TEXT, -- used for open-ended responses
         responded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(participant_id, question_id) -- prevent duplicate votes per question
-);
-        `)
+      )
+    `);
 
-    // Create poll results table
-    await query(`
-      CREATE VIEW poll_results AS
-        SELECT
-            q.id AS question_id,
-            o.id AS option_id,
-            o.option_text,
-        COUNT(r.id) AS vote_count
-        FROM options o
-        JOIN questions q ON o.question_id = q.id
-        LEFT JOIN responses r ON o.id = r.option_id
-        GROUP BY q.id, o.id, o.option_text;
+    // Create poll results view
+    await client(`
+      CREATE OR REPLACE VIEW poll_results AS
+      SELECT
+          q.question_id AS question_id,
+          o.option_id AS option_id,
+          o.option_text,
+          COUNT(r.response_id) AS vote_count
+      FROM options o
+      JOIN questions q ON o.question_id = q.question_id
+      LEFT JOIN responses r ON o.option_id = r.option_id
+      GROUP BY q.question_id, o.option_id, o.option_text
     `);
 
     logger.info('Database initialized successfully');

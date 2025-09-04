@@ -1,2 +1,7 @@
 node_modules/
 .env
+src/logs/
+error.log
+app.log
+exceptions.log
+rejections.log

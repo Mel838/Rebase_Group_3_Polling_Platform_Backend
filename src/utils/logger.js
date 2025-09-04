@@ -1,6 +1,7 @@
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import winston from "winston"
+import { config } from "../config/env.js"
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -8,7 +9,7 @@ const __dirname = path.dirname(__filename)
 const logDir = path.join(__dirname, "../logs")
 
 export const logger = winston.createLogger({
-  level: "debug", // Set logging level
+  level: config.logging.level,
   format: winston.format.combine(
     winston.format.timestamp(),
     winston.format.errors({ stack: true }),

@@ -4,28 +4,21 @@ import { logger } from './logger.js';
 
 const { Pool } = pkg;
 
-// Create connection pool
 const pool = new Pool({
   host: config.database.host,
   port: config.database.port,
   database: config.database.database,
   user: config.database.user,
   password: config.database.password,
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
 });
 
-// Generic query function
-export const client = async (text, params) => {
-  const start = Date.now();
+// Database client function
+export const client = async (query, params = []) => {
   try {
-    const res = await pool.query(text, params);
-    const duration = Date.now() - start;
-    logger.info(`Client query executed in ${duration}ms`);
-    return res;
+    const result = await pool.query(query, params);
+    return result;
   } catch (error) {
-    logger.error('Database query error:', error.message);
+    logger.error('Database query error:', error);
     throw error;
   }
 };

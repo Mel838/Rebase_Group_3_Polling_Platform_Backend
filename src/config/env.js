@@ -9,9 +9,9 @@ export const config = {
   // Database configuration
   database: {
     host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || 4040,
+    port: process.env.DB_PORT || 5432,
     database: process.env.DB_NAME || 'polling_db',
-    user: process.env.DB_USER || 'host',
+    user: process.env.DB_USER || 'mainhost',
     password: process.env.DB_PASSWORD
   },
 

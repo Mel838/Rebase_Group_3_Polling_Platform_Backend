@@ -7,7 +7,7 @@
 import app from "../app.js";
 import degugger from "debug";
 import { logger } from "../utils/logger.js";
-import { initializeDbSchema } from "../utils/database.js";
+import { initializeDatabase } from "../utils/database.js";
 import { config } from "../config/env.js";
 import http from "http";
 
@@ -94,7 +94,7 @@ async function onListening() {
     ? 'pipe ' + addr
     : 'port ' + addr.port;
   try {
-    await initializeDbSchema()
+    await initializeDatabase()
     logger.info("Listening on ", bind)
   } catch (error) {
     logger.error(error)

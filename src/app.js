@@ -8,6 +8,7 @@ import cors from 'cors';
 // Import routes
 import indexRouter from './routes/index.js';
 import authRouter from './routes/auth.js';
+import sessionRouter from './routes/session.js';
 // import pollsRouter from './routes/polls.js';
 // import hostRouter from './routes/hosts.js';
 
@@ -42,6 +43,7 @@ app.use(cookieParser());
 // Routes
 app.use('/', indexRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/session', sessionRouter);
 // app.use('/api/polls', pollsRouter);
 // app.use('/api/hosts', hostRouter);
 

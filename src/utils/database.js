@@ -68,6 +68,18 @@ export const initializeDatabase = async () => {
       )
     `);
 
+    // Create table for sessions
+    await client(`
+      CREATE TABLE IF NOT EXISTS sessions (
+        session_id DEFAULT PRIMARY KEY,
+        host_id INTEGER REFERENCES hosts(host_id) ON DELETE CASCADE,
+        title VARCHAR(100) NOT NULL,
+        description TEXT,
+        session_code VARCHAR(6) UNIQUE NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+
     // Create poll questions table
     await client(`
       CREATE TABLE IF NOT EXISTS questions (

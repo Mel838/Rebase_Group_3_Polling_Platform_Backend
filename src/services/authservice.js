@@ -75,7 +75,7 @@ export class AuthService {
   }
 
   // Get host profile
-  static async getProfile(host_id) {
+  static async getSession(host_id) {
     const result = await client(
       'SELECT host_id, hostname, host_email, created_at FROM hosts WHERE host_id = $1',
       [host_id]

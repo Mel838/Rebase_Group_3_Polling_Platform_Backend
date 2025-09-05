@@ -45,9 +45,9 @@ export class AuthController {
     });
   });
 
-  // Get host profile
-  static getProfile = catchAsync(async (req, res) => {
-    const host = await AuthService.getProfile(req.host.host_id);
+  // Get host session
+  static getSession = catchAsync(async (req, res) => {
+    const host = await AuthService.getSession(req.host.host_id);
 
     res.status(200).json({
       success: true,

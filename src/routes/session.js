@@ -1,9 +1,10 @@
-import express from "express";
+import express from 'express';
+import { createSession } from '../controllers/sessionController.js';
+import { authenticate } from '../middleware/authMiddleware.js'; // Example auth middleware
+
 const router = express.Router();
 
-/* GET users listing. */
-router.get('/', function (req, res, next) {
-  res.send('respond with a resource');
-});
+// POST /api/sessions
+router.post('/', authenticate, createSession);
 
 export default router;

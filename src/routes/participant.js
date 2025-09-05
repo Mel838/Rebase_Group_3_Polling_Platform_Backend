@@ -3,7 +3,7 @@ import {
   joinSession,
   getPublishedPolls,
   submitResponse
-} from '../controllers/participantController.js';
+} from '../controllers/participantcontroller.js';
 
 const router = express.Router();
 

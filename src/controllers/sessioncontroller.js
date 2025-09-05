@@ -1,9 +1,8 @@
-import { SessionService } from '../services/sessionService.js';
+import { SessionService } from '../services/sessionservice.js';
 import { catchAsync } from '../middleware/errorHandler.js';
 import { logger } from '../utils/logger.js';
 
 export class SessionController {
-  // Create new session
   static createSession = catchAsync(async (req, res) => {
     const session = await SessionService.createSession(req.body, req.host.host_id);
 
@@ -59,3 +58,8 @@ export class SessionController {
     });
   });
 }
+
+export const getHostSessions = SessionService.getHostSessions;
+export const getSession = SessionService.getSessionById;
+export const updateSessionStatus = SessionService.updateSessionStatus;
+export const createSession = SessionController.createSession;

@@ -1,72 +1,64 @@
-import express from 'express';
-import http from 'http';
-import { Server } from 'socket.io';
-import { ParticipantService } from './services/ParticipantService.js';
-import { PollService } from './services/pollservice.js'; // you’d add this
-import { logger } from './utils/logger.js';
+import { client } from '../utils/database.js';
+import { AppError } from '../middleware/errorHandler.js';
+import { logger } from '../utils/logger.js';
 
-const app = express();
+export class SessionService {
+  static async createSession(sessionData, host_id) {
+    const { title, description } = sessionData;
+    
+    // Generate unique 6-character session code
+    const session_code = Math.random().toString(36).substr(2, 6).toUpperCase();
 
-const server = http.createServer(app);
-const io = new Server(server, {
-  cors: { origin: '*', credentials: true }
-});
+    const result = await client(`
+      INSERT INTO sessions (host_id, title, description, session_code)
+      VALUES ($1, $2, $3, $4)
+      RETURNING session_id, title, description, session_code, status, created_at`,
+      [host_id, title, description, session_code]
+    );
 
-io.on('connection', (socket) => {
-  logger.info(`Socket connected: ${socket.id}`);
+    const session = result.rows[0];
+    
+    logger.info(`Session created: ${session_code} by host ${host_id}`);
 
-  // Participant joins a session (room)
-  socket.on('joinSession', async ({ session_code, name, email, phone }) => {
-    try {
-      const participant = await ParticipantService.joinSession({ session_code, name, email, phone });
-      const session = await ParticipantService.getSessionByCode(session_code); 
-      const room = `session:${session.session_id}`;
+    return session;
+  }
 
-      socket.join(room);
-      socket.emit('joinedSession', { participant, session_id: session.session_id });
+  static async getHostSessions(host_id) {
+    const result = await client(`
+      SELECT session_id, title, description, session_code, status, created_at
+      FROM sessions WHERE host_id = $1 ORDER BY created_at DESC`,
+      [host_id]
+    );
 
-      // Send any currently published polls
-      const polls = await PollService.getPublishedPolls(session.session_id);
-      socket.emit('publishedPolls', polls);
-    } catch (err) {
-      socket.emit('error', { message: err.message });
+    return result.rows;
+  }
+
+  static async getSessionById(session_id, host_id) {
+    const result = await client(`
+      SELECT session_id, title, description, session_code, status, created_at
+      FROM sessions WHERE session_id = $1 AND host_id = $2`,
+      [session_id, host_id]
+    );
+
+    if (result.rows.length === 0) {
+      throw new AppError('Session not found', 404);
     }
-  });
 
-  // Host publishes a poll
-  socket.on('publishPoll', async ({ poll_id, session_id }) => {
-    try {
-      const poll = await PollService.publishPoll(poll_id, session_id);
-      io.to(`session:${session_id}`).emit('newPoll', poll);
-    } catch (err) {
-      socket.emit('error', { message: err.message });
+    return result.rows[0];
+  }
+
+  static async updateSessionStatus(session_id, host_id, status) {
+    const result = await client(`
+      UPDATE sessions SET status = $1, updated_at = CURRENT_TIMESTAMP
+      WHERE session_id = $2 AND host_id = $3
+      RETURNING session_id, title, status`,
+      [status, session_id, host_id]
+    );
+
+    if (result.rows.length === 0) {
+      throw new AppError('Session not found', 404);
     }
-  });
 
-  // Participant submits a response
-  socket.on('submitResponse', async ({ poll_id, participant_id, response }) => {
-    try {
-      const resObj = await ParticipantService.submitResponse({ poll_id, participant_id, response });
-      socket.emit('responseSubmitted', resObj);
-      // Optionally notify host
-      io.to(`hostsession:${socket.id}`).emit('participantResponse', { poll_id, participant_id, response });
-    } catch (err) {
-      socket.emit('error', { message: err.message });
-    }
-  });
-
-  // Host closes a poll
-  socket.on('closePoll', async ({ poll_id, session_id }) => {
-    try {
-      const poll = await PollService.closePoll(poll_id, session_id);
-      io.to(`session:${session_id}`).emit('pollClosed', { poll_id });
-    } catch (err) {
-      socket.emit('error', { message: err.message });
-    }
-  });
-
-  // Disconnect handler
-  socket.on('disconnect', () => {
-    logger.info(`Socket disconnected: ${socket.id}`);
-  });
-});
+    return result.rows[0];
+  }
+}

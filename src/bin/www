@@ -6,6 +6,9 @@
 
 import app from "../app.js";
 import degugger from "debug";
+import { logger } from "../utils/logger.js";
+import { initializeDatabase } from "../utils/database.js";
+import { config } from "../config/env.js";
 import http from "http";
 
 const debug = degugger('mini-task-api:server');
@@ -14,7 +17,7 @@ const debug = degugger('mini-task-api:server');
  * Get port from environment and store in Express.
  */
 
-const port = normalizePort(process.env.PORT || '3000');
+const port = normalizePort(config.port);
 app.set('port', port);
 
 /**
@@ -60,9 +63,11 @@ function onError(error) {
     throw error;
   }
 
-  const bind = typeof port === 'string'
-    ? 'Pipe ' + port
-    : 'Port ' + port;
+  const bind = typeof addr === 'string'
+    ? 'pipe ' + addr
+    : 'port ' + addr.port;
+  console.log("Listening on ", bind)
+  debug('Listening on ' + bind);
 
   // handle specific listen errors with friendly messages
   switch (error.code) {
@@ -83,10 +88,16 @@ function onError(error) {
  * Event listener for HTTP server "listening" event.
  */
 
-function onListening() {
+async function onListening() {
   const addr = server.address();
   const bind = typeof addr === 'string'
     ? 'pipe ' + addr
     : 'port ' + addr.port;
+  try {
+    await initializeDatabase()
+    logger.info("Listening on ", bind)
+  } catch (error) {
+    logger.error(error)
+  }
   debug('Listening on ' + bind);
 }

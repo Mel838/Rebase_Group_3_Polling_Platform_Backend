@@ -34,9 +34,9 @@ export const protect = catchAsync(async (req, res, next) => {
   }
 
   // 4) Grant access to protected route
-  req.host = result.rows[0];
-  logger.info(`Host ${req.host.hostname} authenticated successfully`);
-  next();
+ req.hostUser = result.rows[0]; // Changed from req.host to req.hostUser
+logger.info(`Host ${req.hostUser.hostname} authenticated successfully`);
+next();
 });
 
 // Generate JWT token

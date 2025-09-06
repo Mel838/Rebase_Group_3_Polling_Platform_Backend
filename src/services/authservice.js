@@ -7,7 +7,8 @@ import { logger } from '../utils/logger.js';
 export class AuthService {
   // Register a new host
   static async register(hostData) {
-    const { hostname, host_email, password } = hostData;
+    // This will cause the error if hostData is undefined
+const { hostname, host_email, password } = hostData;
 
     // Hash password with cost factor of 12 for security
     const passwordHash = await bcrypt.hash(password, 12);

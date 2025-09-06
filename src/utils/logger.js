@@ -15,7 +15,7 @@ export const logger = winston.createLogger({
     winston.format.errors({ stack: true }),
     winston.format.json()
   ),
-  defaultMeta: { service: 'todos-api' },
+  defaultMeta: { service: 'polling_platform' },
   transports: [
     new winston.transports.File({
       filename: path.join(logDir, "error.log"),

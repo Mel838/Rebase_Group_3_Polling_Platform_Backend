@@ -29,15 +29,15 @@ export const initializeDatabase = async () => {
     logger.info('Starting database initialization...');
 
     // Drop tables in correct order (child tables first)
-    await client('DROP TABLE IF EXISTS responses CASCADE');
-    await client('DROP TABLE IF EXISTS participants CASCADE');
-    await client('DROP TABLE IF EXISTS polls CASCADE');
-    await client('DROP TABLE IF EXISTS sessions CASCADE');
-    await client('DROP TABLE IF EXISTS hosts CASCADE');
+    // await client('DROP TABLE IF EXISTS responses CASCADE');
+    // await client('DROP TABLE IF EXISTS participants CASCADE');
+    // await client('DROP TABLE IF EXISTS polls CASCADE');
+    // await client('DROP TABLE IF EXISTS sessions CASCADE');
+    // await client('DROP TABLE IF EXISTS hosts CASCADE');
 
     // Create hosts table
     await client(`
-      CREATE TABLE hosts (
+      CREATE TABLE IF NOT EXISTS hosts (
         host_id SERIAL PRIMARY KEY,
         host_email VARCHAR(255) UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
@@ -49,7 +49,7 @@ export const initializeDatabase = async () => {
 
     // Create sessions table
     await client(`
-      CREATE TABLE sessions (
+      CREATE TABLE IF NOT EXISTS sessions (
         session_id SERIAL PRIMARY KEY,
         host_id INTEGER REFERENCES hosts(host_id) ON DELETE CASCADE,
         title VARCHAR(100) NOT NULL,
@@ -63,7 +63,7 @@ export const initializeDatabase = async () => {
 
     // Create participants table
     await client(`
-      CREATE TABLE participants (
+      CREATE TABLE IF NOT EXISTS participants (
         participant_id SERIAL PRIMARY KEY,
         session_id INTEGER REFERENCES sessions(session_id) ON DELETE CASCADE,
         name VARCHAR(100) NOT NULL,
@@ -75,7 +75,7 @@ export const initializeDatabase = async () => {
 
     // Create polls table 
     await client(`
-      CREATE TABLE polls (
+      CREATE TABLE IF NOT EXISTS polls (
         poll_id SERIAL PRIMARY KEY,
         session_id INTEGER REFERENCES sessions(session_id) ON DELETE CASCADE,
         question TEXT NOT NULL,
@@ -90,7 +90,7 @@ export const initializeDatabase = async () => {
 
     // Create responses table 
     await client(`
-      CREATE TABLE responses (
+      CREATE TABLE IF NOT EXISTS responses (
         response_id SERIAL PRIMARY KEY,
         poll_id INTEGER REFERENCES polls(poll_id) ON DELETE CASCADE,
         participant_id INTEGER REFERENCES participants(participant_id) ON DELETE CASCADE,

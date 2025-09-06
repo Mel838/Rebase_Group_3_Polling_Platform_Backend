@@ -4,6 +4,8 @@ import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
 import helmet from 'helmet';
 import cors from 'cors';
+import { initializeDatabase } from './utils/database.js';
+import { config } from './config/env.js';
 
 // Import routes
 import indexRouter from './routes/index.js';
@@ -20,10 +22,16 @@ import { logger } from './utils/logger.js';
 
 const app = express();
 
+// Initialize database
+// initializeDatabase().catch(err => {
+//   logger.error('Failed to initialize database:', err);
+//   process.exit(1);
+// });
+
 // Security middleware
 app.use(helmet());
 app.use(cors({
-  origin: ["http://localhost:4000", "https://frontendapp.vercel.app"],
+  origin: ["http://localhost:3000", "https://frontendapp.vercel.app"],
   credentials: true
 }));
 

@@ -42,13 +42,23 @@ export const loginSchema = Joi.object({
 // Validation middleware factory
 export const validate = (schema) => {
   return (req, res, next) => {
-    const { error } = schema.validate(req.body, { abortEarly: false });
+    console.log('🔍 Request body:', req.body);
+    console.log('🔍 Request body type:', typeof req.body);
+    console.log('🔍 Request content-type:', req.headers['content-type']);
+    
+    const { error, value } = schema.validate(req.body, { abortEarly: false });
+    
+    console.log('🔍 Validation error:', error);
+    console.log('🔍 Validation value:', value);
     
     if (error) {
       const errors = error.details.map(el => el.message);
       const message = `Invalid input data: ${errors.join('. ')}`;
       return next(new AppError(message, 400));
     }
+    
+    // Attach the validated data to the request object
+    req.validatedData = value; 
     
     next();
   };

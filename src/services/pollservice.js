@@ -2,6 +2,21 @@ import { client } from '../utils/database.js';
 import { AppError } from '../middleware/errorHandler.js';
 
 export class PollService {
+  static async createPoll({ session_id, question, options, type }) {
+    if (!session_id || !question || !options || !type) {
+      throw new AppError('session_id, question, options, and type are required', 400);
+    }
+
+    const result = await client(
+      `INSERT INTO polls (session_id, question, options, type, is_published, status, created_at)
+       VALUES ($1, $2, $3, $4, false, 'draft', CURRENT_TIMESTAMP)
+       RETURNING poll_id, question, options, type, is_published, status, created_at`,
+      [session_id, question, options, type]
+    );
+
+    return result.rows[0];
+  }
+
   static async publishPoll(poll_id, session_id) {
     const result = await client(
       `UPDATE polls SET is_published = true, status = 'published', updated_at = CURRENT_TIMESTAMP

@@ -5,20 +5,24 @@
  */
 
 import app from "../app.js";
-import degugger from "debug";
+import createDebug from "debug";
 import http from "http";
 import { Server } from 'socket.io';
 import { logger } from "../utils/logger.js";
 import { initializeDatabase } from "../utils/database.js";
 import { config } from "../config/env.js";
 
-const debug = degugger('real_time_polling:server');
+const debug = createDebug('real_time_polling:server');
 
 /**
  * Get port from environment and store in Express.
  */
 
-const port = config.port
+const port = config.port || process.env.PORT || 4000;
+if (!port || isNaN(port)) {
+  console.error('Invalid port configuration:', port);
+  process.exit(1);
+}
 app.set('port', port);
 
 /**
@@ -75,7 +79,7 @@ io.on('connection', (socket) => {
 /**
  * Listen on provided port, on all network interfaces.
  */
-
+console.log('Starting server on port:', port);
 server.listen(port);
 server.on('error', onError);
 server.on('listening', onListening);

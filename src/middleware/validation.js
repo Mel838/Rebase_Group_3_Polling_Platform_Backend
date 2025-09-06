@@ -39,17 +39,51 @@ export const loginSchema = Joi.object({
     .required()
 });
 
+//Validate poll_id parameter
+export const validatePollId = (req, res, next) => {
+  const { poll_id } = req.params;
+  
+  // Check if poll_id exists
+  if (!poll_id) {
+    return next(new AppError('Poll ID is required', 400));
+  }
+  
+  // Check if poll_id is a valid format 
+  // Adjust this validation based on your poll_id format
+  if (isNaN(poll_id) && !isValidUUID(poll_id)) {
+    return next(new AppError('Invalid poll ID format', 400));
+  }
+  
+  next();
+};
+
+// Validate session_id in request body
+export const validateSessionId = (req, res, next) => {
+  const { session_id } = req.body;
+  
+  if (!session_id) {
+    return next(new AppError('Session ID is required', 400));
+  }
+  
+  // Add additional session_id validation if needed
+  if (typeof session_id !== 'string' || session_id.trim().length === 0) {
+    return next(new AppError('Invalid session ID format', 400));
+  }
+  
+  next();
+};
+
 // Validation middleware factory
 export const validate = (schema) => {
   return (req, res, next) => {
-    console.log('🔍 Request body:', req.body);
-    console.log('🔍 Request body type:', typeof req.body);
-    console.log('🔍 Request content-type:', req.headers['content-type']);
+    console.log('Request body:', req.body);
+    console.log('Request body type:', typeof req.body);
+    console.log('Request content-type:', req.headers['content-type']);
     
     const { error, value } = schema.validate(req.body, { abortEarly: false });
     
-    console.log('🔍 Validation error:', error);
-    console.log('🔍 Validation value:', value);
+    console.log('Validation error:', error);
+    console.log('Validation value:', value);
     
     if (error) {
       const errors = error.details.map(el => el.message);

@@ -5,19 +5,24 @@
  */
 
 import app from "../app.js";
-import degugger from "debug";
+import createDebug from "debug";
+import http from "http";
+import { Server } from 'socket.io';
 import { logger } from "../utils/logger.js";
 import { initializeDatabase } from "../utils/database.js";
 import { config } from "../config/env.js";
-import http from "http";
 
-const debug = degugger('mini-task-api:server');
+const debug = createDebug('real_time_polling:server');
 
 /**
  * Get port from environment and store in Express.
  */
 
-const port = normalizePort(config.port);
+const port = config.port || process.env.PORT || 4000;
+if (!port || isNaN(port)) {
+  console.error('Invalid port configuration:', port);
+  process.exit(1);
+}
 app.set('port', port);
 
 /**
@@ -27,32 +32,57 @@ app.set('port', port);
 const server = http.createServer(app);
 
 /**
+ * Setup Socket.IO
+ */
+const io = new Server(server, {
+  cors: {
+    origin: ["http://localhost:4000", "https://frontendapp.vercel.app"],
+    credentials: true
+  }
+});
+
+app.set('socketio', io);
+
+/**
+ * Socket.IO events
+ */
+io.on('connection', (socket) => {
+  logger.info(`Socket connected: ${socket.id}`);
+
+  // Join session room
+  socket.on('joinSession', (data) => {
+    const { session_code } = data;
+    socket.join(`session_${session_code}`);
+    socket.emit('sessionJoined', { session_code });
+    logger.info(`Socket joined session: ${session_code}`);
+  });
+
+  // Publish poll to session
+  socket.on('publishPoll', (data) => {
+    const { session_id, poll } = data;
+    io.to(`session_${session_id}`).emit('newPoll', poll);
+    logger.info(`Poll published to session: ${session_id}`);
+  });
+
+  // Submit poll response
+  socket.on('submitResponse', (data) => {
+    const { poll_id, response } = data;
+    socket.emit('responseSubmitted', { poll_id, response });
+    logger.info(`Response submitted for poll: ${poll_id}`);
+  });
+
+  socket.on('disconnect', () => {
+    logger.info(`Socket disconnected: ${socket.id}`);
+  });
+});
+
+/**
  * Listen on provided port, on all network interfaces.
  */
-
+console.log('Starting server on port:', port);
 server.listen(port);
 server.on('error', onError);
 server.on('listening', onListening);
-
-/**
- * Normalize a port into a number, string, or false.
- */
-
-function normalizePort(val) {
-  const port = parseInt(val, 10);
-
-  if (isNaN(port)) {
-    // named pipe
-    return val;
-  }
-
-  if (port >= 0) {
-    // port number
-    return port;
-  }
-
-  return false;
-}
 
 /**
  * Event listener for HTTP server "error" event.
@@ -63,13 +93,10 @@ function onError(error) {
     throw error;
   }
 
-  const bind = typeof addr === 'string'
-    ? 'pipe ' + addr
-    : 'port ' + addr.port;
-  console.log("Listening on ", bind)
-  debug('Listening on ' + bind);
+  const bind = typeof port === 'string'
+    ? 'Pipe ' + port
+    : 'Port ' + port;
 
-  // handle specific listen errors with friendly messages
   switch (error.code) {
     case 'EACCES':
       console.error(bind + ' requires elevated privileges');
@@ -93,11 +120,15 @@ async function onListening() {
   const bind = typeof addr === 'string'
     ? 'pipe ' + addr
     : 'port ' + addr.port;
+
   try {
-    await initializeDatabase()
-    logger.info("Listening on ", bind)
+    await initializeDatabase();
+    logger.info('Server listening on ' + bind);
+    console.log('Server running on ' + bind);
   } catch (error) {
-    logger.error(error)
+    logger.error('Database failed:', error);
+    process.exit(1);
   }
+  
   debug('Listening on ' + bind);
 }

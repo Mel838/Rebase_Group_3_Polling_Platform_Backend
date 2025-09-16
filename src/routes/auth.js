@@ -7,10 +7,11 @@ const router = express.Router();
 
 // Public routes
 router.post('/register', validate(registerSchema), AuthController.register);
+
 router.post('/login', validate(loginSchema), AuthController.login);
 
 // Protected routes
-router.get('/profile', protect, AuthController.getProfile);
+router.get('/', protect, AuthController.getSession);
 router.post('/logout', protect, AuthController.logout);
 
 export default router;

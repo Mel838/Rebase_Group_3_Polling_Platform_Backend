@@ -23,102 +23,86 @@ export const client = async (query, params = []) => {
   }
 };
 
-// Initialize database tables
+// Initialize database tables - SIMPLIFIED VERSION
 export const initializeDatabase = async () => {
   try {
-    // Drop existing tables if they exist (in correct order due to dependencies)
-    await client('DROP VIEW IF EXISTS poll_results CASCADE');
-    await client('DROP TABLE IF EXISTS responses CASCADE');
-    await client('DROP TABLE IF EXISTS options CASCADE');
-    await client('DROP TABLE IF EXISTS questions CASCADE');
-    await client('DROP TABLE IF EXISTS polls CASCADE');
-    await client('DROP TABLE IF EXISTS participants CASCADE');
-    await client('DROP TABLE IF EXISTS hosts CASCADE');
-    await client('DROP SEQUENCE IF EXISTS hosts_host_id_seq CASCADE');
+    logger.info('Starting database initialization...');
 
-    // Create Host table
+    // Drop tables in correct order (child tables first)
+    // await client('DROP TABLE IF EXISTS responses CASCADE');
+    // await client('DROP TABLE IF EXISTS participants CASCADE');
+    // await client('DROP TABLE IF EXISTS polls CASCADE');
+    // await client('DROP TABLE IF EXISTS sessions CASCADE');
+    // await client('DROP TABLE IF EXISTS hosts CASCADE');
+
+    // Create hosts table
     await client(`
       CREATE TABLE IF NOT EXISTS hosts (
         host_id SERIAL PRIMARY KEY,
         host_email VARCHAR(255) UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
-        hostname VARCHAR(100) UNIQUE,
+        hostname VARCHAR(100) UNIQUE NOT NULL,
         created_at TIMESTAMP DEFAULT NOW(),
         is_active BOOLEAN DEFAULT TRUE
       )
     `);
 
-    // Create Participants table
+    // Create sessions table
     await client(`
-      CREATE TABLE IF NOT EXISTS participants (
-        participant_id SERIAL PRIMARY KEY,
-        participant_email VARCHAR(255) UNIQUE NOT NULL,
-        participant_name VARCHAR(100) UNIQUE
-      )
-    `);
-
-    // Create poll table
-    await client(`
-      CREATE TABLE IF NOT EXISTS polls (
-        poll_id SERIAL PRIMARY KEY,
-        poll_title VARCHAR(50) UNIQUE NOT NULL,
-        poll_description TEXT NOT NULL,
+      CREATE TABLE IF NOT EXISTS sessions (
+        session_id SERIAL PRIMARY KEY,
+        host_id INTEGER REFERENCES hosts(host_id) ON DELETE CASCADE,
+        title VARCHAR(100) NOT NULL,
+        description TEXT,
+        session_code VARCHAR(6) UNIQUE NOT NULL,
+        status VARCHAR(20) DEFAULT 'active',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
-    // Create poll questions table
+    // Create participants table
     await client(`
-      CREATE TABLE IF NOT EXISTS questions (
-        question_id SERIAL PRIMARY KEY,
-        poll_id INTEGER REFERENCES polls(poll_id) ON DELETE CASCADE,
-        question_text TEXT NOT NULL,
-        question_type VARCHAR(50) NOT NULL, -- e.g., 'multiple_choice', 'open_ended'
-        position INTEGER -- for ordering questions
+      CREATE TABLE IF NOT EXISTS participants (
+        participant_id SERIAL PRIMARY KEY,
+        session_id INTEGER REFERENCES sessions(session_id) ON DELETE CASCADE,
+        name VARCHAR(100) NOT NULL,
+        email VARCHAR(255),
+        phone VARCHAR(20),
+        joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
-    // Create poll options for questions table
+    // Create polls table 
     await client(`
-      CREATE TABLE IF NOT EXISTS options (
-        option_id SERIAL PRIMARY KEY,
-        question_id INTEGER REFERENCES questions(question_id) ON DELETE CASCADE,
-        option_text TEXT NOT NULL,
-        position INTEGER
+      CREATE TABLE IF NOT EXISTS polls (
+        poll_id SERIAL PRIMARY KEY,
+        session_id INTEGER REFERENCES sessions(session_id) ON DELETE CASCADE,
+        question TEXT NOT NULL,
+        options JSONB DEFAULT '[]',
+        type VARCHAR(50) DEFAULT 'multiple_choice',
+        is_published BOOLEAN DEFAULT false,
+        status VARCHAR(20) DEFAULT 'draft',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
-    // Create poll responses for participants
+    // Create responses table 
     await client(`
       CREATE TABLE IF NOT EXISTS responses (
         response_id SERIAL PRIMARY KEY,
-        participant_id INTEGER REFERENCES participants(participant_id),
-        question_id INTEGER REFERENCES questions(question_id),
-        option_id INTEGER REFERENCES options(option_id), -- NULL for open-ended
-        response_text TEXT, -- used for open-ended responses
-        responded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(participant_id, question_id) -- prevent duplicate votes per question
+        poll_id INTEGER REFERENCES polls(poll_id) ON DELETE CASCADE,
+        participant_id INTEGER REFERENCES participants(participant_id) ON DELETE CASCADE,
+        response JSONB NOT NULL,
+        submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(participant_id, poll_id)
       )
-    `);
-
-    // Create poll results view
-    await client(`
-      CREATE OR REPLACE VIEW poll_results AS
-      SELECT
-          q.question_id AS question_id,
-          o.option_id AS option_id,
-          o.option_text,
-          COUNT(r.response_id) AS vote_count
-      FROM options o
-      JOIN questions q ON o.question_id = q.question_id
-      LEFT JOIN responses r ON o.option_id = r.option_id
-      GROUP BY q.question_id, o.option_id, o.option_text
     `);
 
     logger.info('Database initialized successfully');
   } catch (error) {
-    logger.error('Database initialization failed:', error.message);
+    logger.error('Database initialization failed:', error);
     throw error;
   }
 };

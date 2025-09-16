@@ -5,7 +5,12 @@ import { logger } from '../utils/logger.js';
 export class AuthController {
   // Register new host
   static register = catchAsync(async (req, res) => {
-    const result = await AuthService.register(req.body);
+    // Pass req.validatedData to the service instead of req.body
+    // Correct way - pass the validated data
+const result = await AuthService.register(req.validatedData);
+
+// NOT like this (which would pass undefined):
+// const result = await AuthService.register(hostData);
 
     // Set HTTP-only cookie for additional security (optional)
     res.cookie('jwt', result.token, {
@@ -45,9 +50,9 @@ export class AuthController {
     });
   });
 
-  // Get host profile
-  static getProfile = catchAsync(async (req, res) => {
-    const host = await AuthService.getProfile(req.host.host_id);
+  // Get host session
+  static getSession = catchAsync(async (req, res) => {
+    const host = await AuthService.getSession(req.host.host_id);
 
     res.status(200).json({
       success: true,

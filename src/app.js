@@ -22,7 +22,7 @@ const app = express();
 // Security middleware
 app.use(helmet());
 app.use(cors({
-  origin: ["http://localhost:3000", "https://frontendapp.vercel.app"],
+  origin: ["http://localhost:3000", "http://localhost:4000", "https://frontendapp.vercel.app"],
   credentials: true
 }));
 

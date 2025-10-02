@@ -61,4 +61,28 @@ export class SessionService {
 
     return result.rows[0];
   }
+
+  static async getSessionParticipants(session_id, host_id) {
+  // Verify session belongs to host
+  const sessionCheck = await client(
+    'SELECT session_id FROM sessions WHERE session_id = $1 AND host_id = $2',
+    [session_id, host_id]
+  );
+
+  if (sessionCheck.rows.length === 0) {
+    throw new AppError('Session not found or access denied', 404);
+  }
+
+  // Get participants
+  const result = await client(
+    `SELECT participant_id, name, email, phone, joined_at 
+     FROM participants 
+     WHERE session_id = $1 
+     ORDER BY joined_at DESC`,
+    [session_id]
+  );
+
+  return result.rows;
+}
+
 }

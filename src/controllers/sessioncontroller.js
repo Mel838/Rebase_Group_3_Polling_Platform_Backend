@@ -1,10 +1,9 @@
 import { SessionService } from '../services/sessionservice.js';
 import { catchAsync } from '../middleware/errorHandler.js';
-import { logger } from '../utils/logger.js';
 
 export class SessionController {
   static createSession = catchAsync(async (req, res) => {
-    const session = await SessionService.createSession(req.body, req.host.host_id);
+    const session = await SessionService.createSession(req.body, req.hostUser.host_id);
 
     res.status(201).json({
       success: true,
@@ -13,9 +12,9 @@ export class SessionController {
     });
   });
 
-  // Get host sessions
+  // Get host sessions 
   static getHostSessions = catchAsync(async (req, res) => {
-    const sessions = await SessionService.getHostSessions(req.host.host_id);
+    const sessions = await SessionService.getHostSessions(req.hostUser.host_id);
 
     res.status(200).json({
       success: true,
@@ -23,9 +22,12 @@ export class SessionController {
     });
   });
 
-  // Get session by ID
+  // Get session by ID 
   static getSession = catchAsync(async (req, res) => {
-    const session = await SessionService.getSessionById(req.params.session_id, req.host.host_id);
+    const session = await SessionService.getSessionById(
+      req.params.session_id, 
+      req.hostUser.host_id
+    );
 
     res.status(200).json({
       success: true,
@@ -33,12 +35,12 @@ export class SessionController {
     });
   });
 
-  // Update session status
+  // Update session status 
   static updateSessionStatus = catchAsync(async (req, res) => {
     const { status } = req.body;
     const session = await SessionService.updateSessionStatus(
       req.params.session_id, 
-      req.host.host_id, 
+      req.hostUser.host_id, 
       status
     );
 
@@ -57,9 +59,17 @@ export class SessionController {
       data: { session }
     });
   });
-}
 
-export const getHostSessions = SessionService.getHostSessions;
-export const getSession = SessionService.getSessionById;
-export const updateSessionStatus = SessionService.updateSessionStatus;
-export const createSession = SessionController.createSession;
+  // NEW: Get session participants
+  static getSessionParticipants = catchAsync(async (req, res) => {
+    const participants = await SessionService.getSessionParticipants(
+      req.params.session_id,
+      req.hostUser.host_id
+    );
+
+    res.status(200).json({
+      success: true,
+      data: { participants }
+    });
+  });
+}

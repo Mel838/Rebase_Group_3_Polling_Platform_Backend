@@ -3,7 +3,6 @@ import { AppError } from '../middleware/errorHandler.js';
 
 export class PollController {
   // Create a new poll
-  // POST /api/polls
   static async createPoll(req, res, next) {
     try {
       const { session_id, question, options, type } = req.body;
@@ -26,7 +25,6 @@ export class PollController {
   }
 
   //Publish a poll
-  //PUT /api/polls/:poll_id/publish
   static async publishPoll(req, res, next) {
     try {
       const { poll_id } = req.params;
@@ -49,8 +47,23 @@ export class PollController {
     }
   }
 
+  // Get poll responses
+  static async getPollResponses(req, res, next) {
+  try {
+    const { poll_id } = req.params;
+    
+    const responses = await PollService.getPollResponses(poll_id);
+
+    res.status(200).json({
+      success: true,
+      data: responses
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
   // Close a poll
-  //PUT /api/polls/:poll_id/close
   static async closePoll(req, res, next) {
     try {
       const { poll_id } = req.params;

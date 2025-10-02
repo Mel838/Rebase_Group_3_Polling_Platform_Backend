@@ -30,6 +30,20 @@ export class PollService {
     return result.rows[0];
   }
 
+  static async getPollResponses(poll_id) {
+  const result = await client(
+    `SELECT r.response_id, r.response, r.submitted_at, 
+            p.participant_id, p.name as participant_name
+     FROM responses r
+     JOIN participants p ON r.participant_id = p.participant_id
+     WHERE r.poll_id = $1
+     ORDER BY r.submitted_at DESC`,
+    [poll_id]
+  );
+  
+  return result.rows;
+}
+
   static async closePoll(poll_id, session_id) {
     const result = await client(
       `UPDATE polls SET status = 'closed', updated_at = CURRENT_TIMESTAMP

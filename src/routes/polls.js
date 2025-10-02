@@ -12,4 +12,6 @@ router.put('/:poll_id/close', validatePollId, PollController.closePoll);
 
 router.get('/published/:session_id', PollController.getPublishedPolls);
 
+router.get('/:poll_id/responses', PollController.getPollResponses);
+
 export default router;
